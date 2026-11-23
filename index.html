@@ -336,8 +336,53 @@ async function initMap(){
   await new Promise((resolve,reject)=>{script.onload=resolve;script.onerror=reject});
   await ymaps3.ready;
   const {YMap,YMapDefaultSchemeLayer,YMapDefaultFeaturesLayer,YMapControls,YMapZoomControl}=ymaps3;
+  
   mapInstance=new YMap(document.getElementById("map"),{location:{center:state.center||DEFAULT_CENTER,zoom:13}});
-  mapInstance.addChild(new YMapDefaultSchemeLayer({theme:"dark"}));
+  
+  // --- НАЧАЛО КАСТОМНОГО СТИЛЯ ---
+  mapInstance.addChild(new YMapDefaultSchemeLayer({
+    customization: [
+      // 1. Фон карты (земля) - темный, как панели сайта
+      {
+        tags: { all: ['landscape'] },
+        stylers: [{ color: '#1b1915' }] // --panel
+      },
+      // 2. Вода (Обь) - глубокий синий/серый
+      {
+        tags: { all: ['water'] },
+        stylers: [{ color: '#151613' }] // Темно-зеленоватый
+      },
+      // 3. Парки и леса - приглушенный зеленый
+      {
+        tags: { all: ['landscape', 'park'] },
+        stylers: [{ color: '#22271f' }] // Из градиента карты
+      },
+      // 4. Дороги - чтобы выделялись на фоне
+      {
+        tags: { any: ['road_1', 'road_2', 'road_3'] },
+        elements: 'geometry',
+        stylers: [{ color: '#393329' }] // --line
+      },
+      // 5. Здания - темные блоки
+      {
+        tags: { all: ['building'] },
+        stylers: [{ color: '#211e18' }] // --panel2
+      },
+      // 6. Скрываем всё лишнее: иконки метро, магазинов, парковок и т.д.
+      {
+        tags: { any: ['transit', 'poi', 'parking', 'metro'] },
+        stylers: [{ visibility: 'off' }]
+      },
+      // 7. Текст подписей (улицы, районы) - делаем приглушенным
+      {
+        tags: { any: ['road', 'district'] },
+        elements: 'label.text',
+        stylers: [{ color: '#928773' }] // --muted
+      }
+    ]
+  }));
+  // --- КОНЕЦ КАСТОМНОГО СТИЛЯ ---
+
   mapInstance.addChild(new YMapDefaultFeaturesLayer());
   try{mapInstance.addChild(new YMapControls({position:"right"}).addChild(new YMapZoomControl({})))}catch(e){}
   document.getElementById("mapFallback").style.display="none";
@@ -345,17 +390,3 @@ async function initMap(){
   refreshMarkers();
  }catch(err){console.error(err);document.getElementById("mapFallback").style.display="flex";document.querySelector("#mapFallback p").textContent="Не удалось загрузить Яндекс Карты. Проверьте API-ключ, Referer и подключение к интернету."}
 }
-document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{currentTab=b.dataset.tab;render()}));
-document.getElementById("settingsBtn").onclick=()=>{document.getElementById("noviceToggle").checked=state.novice;document.getElementById("easyToggle").checked=state.showEasy;document.getElementById("nameInput").value=state.name;document.getElementById("settingsModal").classList.add("show")};
-document.getElementById("closeSettings").onclick=()=>document.getElementById("settingsModal").classList.remove("show");
-document.getElementById("saveSettings").onclick=()=>{state.novice=document.getElementById("noviceToggle").checked;state.showEasy=document.getElementById("easyToggle").checked;state.name=document.getElementById("nameInput").value.trim()||"Маримо";document.getElementById("settingsModal").classList.remove("show");save();render();refreshMarkers();toast("Настройки сохранены")};
-document.getElementById("resetMap").onclick=()=>{state.center=DEFAULT_CENTER;if(mapInstance)mapInstance.setLocation({center:DEFAULT_CENTER,zoom:13,duration:500});toast("Центр карты сброшен")};
-document.getElementById("leaveDungeon").onclick=()=>document.getElementById("dungeonModal").classList.remove("show");
-document.getElementById("closeTravel").onclick=()=>document.getElementById("travelModal").classList.remove("show");
-document.getElementById("attackBtn").onclick=attack;
-document.getElementById("claimBtn").onclick=()=>{document.getElementById("dungeonModal").classList.remove("show");currentTab="journal";render()};
-document.getElementById("dungeonModal").addEventListener("click",e=>{if(e.target.id==="dungeonModal")e.currentTarget.classList.remove("show")});
-render();initMap();
-</script>
-</body>
-</html>
