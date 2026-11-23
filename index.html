@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Хроники странника — Новосибирск RPG</title>
+<title>Хроники странника — Новосибирск</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600;700&display=swap');
 :root{--bg:#11100e;--panel:#1b1915;--panel2:#211e18;--line:#51432e;--gold:#c5a66b;--gold2:#e1c58b;--text:#d8cdb7;--muted:#928773;--red:#a64f43;--green:#82936a;--blue:#718a9a;--shadow:0 14px 40px #0009}
@@ -106,7 +106,6 @@ input[type=file]{max-width:100%;color:var(--muted);font-size:13px}
   </main>
 </div>
 
-<!-- Модальное окно путешествия (Morrowind style) -->
 <div class="modal-backdrop" id="travelModal">
   <div class="modal">
     <div class="small" id="travelType">ПУТЬ</div>
@@ -148,11 +147,7 @@ input[type=file]{max-width:100%;color:var(--muted);font-size:13px}
 <div class="toast" id="toast"></div>
 
 <script>
-// ================================================================
-// НАСТРОЙКИ
-// ================================================================
 const YANDEX_MAPS_API_KEY = "33cd2776-f648-411c-bba1-7ac3657c4d72";
-// Координаты центра карты (твой район в Новосибирске)
 const DEFAULT_CENTER = [82.945882, 55.016262]; 
 
 const QUESTS = [
@@ -231,4 +226,136 @@ function renderInventory(c){
  c.innerHTML=`<div class="section-title">Дорожный мешок · ${state.inventory.length} предмет.</div>
  <div class="panel"><div class="section-title">Экипировка</div><div class="gear"><span class="gear-slot">Куртка: ${state.equipped.jacket?"🧥 надета":"пусто"}</span><span class="gear-slot">Термос: ${itemCount("thermos")?"в сумке":"нет"}</span></div></div>
  <div class="panel">${groups.length?groups.map(x=>`<div class="item"><div class="item-icon">${x.item.icon}</div><div class="item-info"><strong>${x.item.name}</strong><span>${x.item.desc}</span></div>${x.id==="jacket"?`<button class="btn secondary" onclick="toggleJacket()"> ${state.equipped.jacket?"Снять":"Надеть"} </button>`:x.item.kind==="consumable"?`<button class="btn secondary" onclick="useItem('${x.id}')">Использовать</button>`:""}</div>`).join(""):'<div class="empty">Мешок пуст.</div>'}</div>
- <div class="panel"><div class="section-title">Доказательства пути</div><p class="small">Загружай фотографии найденных мест или предметов. Они хранятся в localStorage этого браузера.</p><input type="file" accept="image/*" id="photoInput"><div id="photoGallery" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${Object.entries(state.photos).map(([k,v])=>`<div style="width:90px"><img src="${v}" style="width:90px;height:75px;object-fit:cover;border:1px solid var(--gold)"><div class="small">${
+ <div class="panel"><div class="section-title">Доказательства пути</div><p class="small">Загружай фотографии найденных мест или предметов. Они хранятся в localStorage этого браузера.</p><input type="file" accept="image/*" id="photoInput"><div id="photoGallery" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${Object.entries(state.photos).map(([k,v])=>`<div style="width:90px"><img src="${v}" style="width:90px;height:75px;object-fit:cover;border:1px solid var(--gold)"><div class="small">${escapeHtml(k)}</div></div>`).join("")}</div></div>`;
+ document.getElementById("photoInput").addEventListener("change",handlePhoto);
+}
+function renderCharacter(c){
+ c.innerHTML=`<div class="section-title">Лист персонажа</div>
+ <div class="panel"><div class="character-grid">
+ <div class="character-stat"><strong>${state.hp}/${state.maxHp}</strong><span>Здоровье</span></div>
+ <div class="character-stat"><strong>${state.stamina}/${state.maxStamina}</strong><span>Выносливость</span></div>
+ <div class="character-stat"><strong>${state.strength}</strong><span>Сила</span></div>
+ <div class="character-stat"><strong>${state.charisma}</strong><span>Харизма</span></div>
+ <div class="character-stat"><strong>${state.luck+(state.completed.includes("tower")?1:0)}</strong><span>Удача</span></div>
+ <div class="character-stat"><strong>${state.gold}</strong><span>Монеты</span></div></div></div>
+ <div class="panel"><div class="section-title">Опыт и развитие</div><div class="statline"><span>Уровень ${state.level}</span><span>${state.xp} / ${state.level*100} XP</span></div><div class="bar"><div class="fill xp" style="width:${state.xp/(state.level*100)*100}%"></div></div><p class="small">Опыт приходит за завершённые задания и преодолённые испытания.</p></div>
+ <div class="panel"><div class="section-title">Путевые действия</div><p class="small">Переход расходует 8 выносливости. Отдых восстанавливает силы, но продвигает время.</p><div class="actions"><button class="btn" onclick="rest()">Отдохнуть у костра</button><button class="btn secondary" onclick="buySupplies()">Купить припасы</button></div></div>
+ <div class="panel"><div class="section-title">О персонаже</div><p class="small">Маримо — странник, который учится читать следы города. Его сила не только в оружии: терпение, подготовка и удача часто важнее грубой мощи.</p></div>`;
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function travel(id){
+ const q=questById(id);if(!q)return;
+ const cost=8+(q.difficulty>2?4:0);
+ if(state.stamina<cost){toast("Недостаточно выносливости. Отдохни.");return}
+ currentTravel=id;
+ document.getElementById("travelType").textContent=q.type==="dungeon"?"ОПАСНОЕ МЕСТО":"ЛОКАЦИЯ";
+ document.getElementById("travelTitle").textContent=q.title;
+ document.getElementById("travelText").textContent=q.scene;
+ const confirmBtn=document.getElementById("confirmTravel");
+ confirmBtn.style.display="inline-block";
+ confirmBtn.textContent=q.type==="dungeon"?"⚔ Войти в данж":"Действовать";
+ confirmBtn.onclick=()=>{
+  state.stamina-=cost;state.day++;log(`Ты отправился к месту: «${q.title}».`);
+  document.getElementById("travelModal").classList.remove("show");
+  if(q.type==="dungeon")enterDungeon(q.id);else completeQuest(q.id);
+  if(mapInstance&&q.markerCoords&&canShowMarker(q)){mapInstance.setLocation({center:[q.markerCoords[1],q.markerCoords[0]],zoom:15,duration:500})}
+  render();save();toast(`Переход: −${cost} выносливости`);
+ };
+ document.getElementById("travelModal").classList.add("show");
+}
+function completeQuest(id){
+ const q=questById(id);if(!q||state.completed.includes(id))return;
+ state.active=state.active.filter(x=>x!==id);state.failed=state.failed.filter(x=>x!==id);state.completed.push(id);
+ gainXp(q.xp);state.gold+=Math.max(2,q.difficulty*2);if(q.loot==="Тёплая куртка")addItem("jacket");else if(q.loot==="Термос")addItem("thermos");else if(q.loot==="Малое зелье")addItem("potion");else if(q.loot==="Потёртый амулет")addItem("amulet");
+ log(`Задание «${q.title}» завершено. Получено ${q.xp} опыта.`);render();refreshMarkers();toast("Задание выполнено!");
+}
+function enterDungeon(id){
+ const q=questById(id);if(!q)return;
+ currentDungeon=id;combatDone=false;
+ document.getElementById("dungeonType").textContent="ИСПЫТАНИЕ · СЛОЖНОСТЬ "+q.difficulty+"/5";
+ document.getElementById("dungeonTitle").textContent=q.enemy||q.title;
+ document.getElementById("enemyText").textContent=q.enemyText||q.description;
+ document.getElementById("combatStats").textContent=`Сила ${state.strength} · Выносливость ${state.stamina} · Удача ${state.luck}`;
+ document.getElementById("combatResult").style.display="none";document.getElementById("attackBtn").style.display="inline-block";document.getElementById("claimBtn").style.display="none";
+ document.getElementById("dungeonModal").classList.add("show");
+}
+function attack(){
+ if(combatDone)return;const q=questById(currentDungeon);if(!q)return;
+ const staminaCost=12;
+ if(state.stamina<staminaCost){toast("Слишком мало сил для атаки.");return}
+ state.stamina-=staminaCost;
+ const roll=1+Math.floor(Math.random()*20);
+ const defense=q.difficulty*4+8;
+ const score=state.strength*1.5+state.stamina*.12+state.luck*.7+roll+(state.equipped.jacket?3:0);
+ const success=score>=defense;
+ const result=document.getElementById("combatResult");result.style.display="block";
+ if(success){
+  result.innerHTML=`<b>Успех! Выпало ${roll}.</b><br>Твоя подготовка и удача помогли преодолеть препятствие. Ты получаешь награду.`;
+  state.active=state.active.filter(x=>x!==q.id);if(!state.completed.includes(q.id))state.completed.push(q.id);
+  gainXp(q.xp);state.gold+=q.difficulty*3;
+  if(q.loot==="Тёплая куртка")addItem("jacket");else if(q.loot==="Термос")addItem("thermos");else addItem("potion");
+  log(`Испытание «${q.title}» пройдено. Бросок: ${roll}.`);
+ }else{
+  const damage=Math.max(8,q.difficulty*7-(state.equipped.jacket?8:0));
+  state.hp=Math.max(1,state.hp-damage);state.failed.push(q.id);state.active=state.active.filter(x=>x!==q.id);
+  result.innerHTML=`<b>Неудача. Выпало ${roll}.</b><br>Ты отступаешь, потеряв ${damage} здоровья. Теперь место испытания отмечено на карте.`;
+  log(`Провал испытания «${q.title}». Потеряно ${damage} здоровья. Метка открыта.`);
+  if(state.hp<=1){state.hp=25;state.stamina=Math.max(15,state.stamina);log("На грани сил ты добрался до безопасного места. Здоровье восстановлено до 25.");}
+ }
+ combatDone=true;document.getElementById("attackBtn").style.display="none";document.getElementById("claimBtn").style.display="inline-block";
+ save();render();refreshMarkers();
+}
+function reopenQuest(id){state.failed=state.failed.filter(x=>x!==id);state.active.push(id);log(`Ты решил вернуться к заданию «${questById(id).title}».`);render();refreshMarkers()}
+function rest(){state.day++;state.stamina=Math.min(state.maxStamina,state.stamina+40);state.hp=Math.min(state.maxHp,state.hp+15);log("Ты отдохнул и восстановил силы у костра.");render();save();toast("Силы восстановлены")}
+function buySupplies(){const price=Math.max(2,Math.round(8-state.charisma*.5));if(state.gold<price){toast("Не хватает монет.");return}state.gold-=price;addItem("potion");log(`Куплено малое зелье за ${price} монет. Харизма помогает торговаться.`);render();toast("Припасы куплены")}
+function toggleJacket(){state.equipped.jacket=!state.equipped.jacket;log(state.equipped.jacket?"Ты надел тёплую куртку.":"Ты снял тёплую куртку.");render();save()}
+function useItem(id){const i=state.inventory.indexOf(id);if(i<0)return;
+ if(id==="thermos"){state.stamina=Math.min(state.maxStamina,state.stamina+25);state.inventory.splice(i,1);log("Ты сделал глоток из термоса. Выносливость восстановлена на 25.");}
+ else if(id==="potion"){state.hp=Math.min(state.maxHp,state.hp+30);state.inventory.splice(i,1);log("Ты выпил малое зелье и восстановил здоровье.");}
+ render();save();toast("Предмет использован")}
+function handlePhoto(e){
+ const file=e.target.files[0];if(!file)return;if(!file.type.startsWith("image/")){toast("Выбери изображение.");return}
+ const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const canvas=document.createElement("canvas");const max=900;const scale=Math.min(1,max/Math.max(img.width,img.height));canvas.width=Math.round(img.width*scale);canvas.height=Math.round(img.height*scale);canvas.getContext("2d").drawImage(img,0,0,canvas.width,canvas.height);const data=canvas.toDataURL("image/jpeg",.72);const label=prompt("Подпись к фотографии:","След странника");if(label===null)return;state.photos[label.slice(0,40)]=data;save();renderInventory(document.getElementById("content"));toast("Фотография сохранена")};img.src=reader.result};reader.readAsDataURL(file);
+}
+function canShowMarker(q){return state.novice||(state.showEasy&&q.difficulty<3)||state.failed.includes(q.id)}
+function refreshMarkers(){
+ if(!mapInstance)return;
+ mapMarkers.forEach(m=>{try{mapInstance.removeChild(m)}catch(e){}});mapMarkers=[];
+ QUESTS.forEach(q=>{
+  if(!canShowMarker(q))return;
+  const el=document.createElement("div");el.className="marker "+(q.type==="dungeon"?"dungeon":q.type==="resource"?"resource":"");el.textContent=q.type==="dungeon"?"⚔":q.type==="resource"?"⚗":"✦";el.title=q.title;
+  const marker=new ymaps3.YMapMarker({coordinates:[q.markerCoords[1],q.markerCoords[0]]},el);mapInstance.addChild(marker);mapMarkers.push(marker);
+ });
+ document.getElementById("markerStatus").textContent=mapMarkers.length?`Открыто меток: ${mapMarkers.length}`:"Метки скрыты";
+}
+async function initMap(){
+ if(!YANDEX_MAPS_API_KEY){document.getElementById("mapFallback").style.display="flex";return}
+ try{
+  const script=document.createElement("script");script.src=`https://api-maps.yandex.ru/v3/?apikey=${encodeURIComponent(YANDEX_MAPS_API_KEY)}&lang=ru_RU`;script.async=true;
+  document.head.appendChild(script);
+  await new Promise((resolve,reject)=>{script.onload=resolve;script.onerror=reject});
+  await ymaps3.ready;
+  const {YMap,YMapDefaultSchemeLayer,YMapDefaultFeaturesLayer,YMapControls,YMapZoomControl}=ymaps3;
+  mapInstance=new YMap(document.getElementById("map"),{location:{center:state.center||DEFAULT_CENTER,zoom:13}});
+  mapInstance.addChild(new YMapDefaultSchemeLayer({theme:"dark"}));
+  mapInstance.addChild(new YMapDefaultFeaturesLayer());
+  try{mapInstance.addChild(new YMapControls({position:"right"}).addChild(new YMapZoomControl({})))}catch(e){}
+  document.getElementById("mapFallback").style.display="none";
+  document.getElementById("mapMode").textContent="Исследование мира";
+  refreshMarkers();
+ }catch(err){console.error(err);document.getElementById("mapFallback").style.display="flex";document.querySelector("#mapFallback p").textContent="Не удалось загрузить Яндекс Карты. Проверьте API-ключ, Referer и подключение к интернету."}
+}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{currentTab=b.dataset.tab;render()}));
+document.getElementById("settingsBtn").onclick=()=>{document.getElementById("noviceToggle").checked=state.novice;document.getElementById("easyToggle").checked=state.showEasy;document.getElementById("nameInput").value=state.name;document.getElementById("settingsModal").classList.add("show")};
+document.getElementById("closeSettings").onclick=()=>document.getElementById("settingsModal").classList.remove("show");
+document.getElementById("saveSettings").onclick=()=>{state.novice=document.getElementById("noviceToggle").checked;state.showEasy=document.getElementById("easyToggle").checked;state.name=document.getElementById("nameInput").value.trim()||"Маримо";document.getElementById("settingsModal").classList.remove("show");save();render();refreshMarkers();toast("Настройки сохранены")};
+document.getElementById("resetMap").onclick=()=>{state.center=DEFAULT_CENTER;if(mapInstance)mapInstance.setLocation({center:DEFAULT_CENTER,zoom:13,duration:500});toast("Центр карты сброшен")};
+document.getElementById("leaveDungeon").onclick=()=>document.getElementById("dungeonModal").classList.remove("show");
+document.getElementById("closeTravel").onclick=()=>document.getElementById("travelModal").classList.remove("show");
+document.getElementById("attackBtn").onclick=attack;
+document.getElementById("claimBtn").onclick=()=>{document.getElementById("dungeonModal").classList.remove("show");currentTab="journal";render()};
+document.getElementById("dungeonModal").addEventListener("click",e=>{if(e.target.id==="dungeonModal")e.currentTarget.classList.remove("show")});
+render();initMap();
+</script>
+</body>
+</html>
