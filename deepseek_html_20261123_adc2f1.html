@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Хроники странника — Новосибирск RPG</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600;700&display=swap');
+:root{--bg:#11100e;--panel:#1b1915;--panel2:#211e18;--line:#51432e;--gold:#c5a66b;--gold2:#e1c58b;--text:#d8cdb7;--muted:#928773;--red:#a64f43;--green:#82936a;--blue:#718a9a;--shadow:0 14px 40px #0009}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 20% 0%,#282319 0,#11100e 55%);color:var(--text);font-family:'EB Garamond',Georgia,serif;font-size:18px;min-height:100vh}
+button,input,select{font:inherit}button{cursor:pointer}
+.app{height:100vh;min-height:650px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(390px,.8fr);gap:0}
+.world{position:relative;border-right:1px solid var(--line);min-width:0;background:#151613}
+.topbar{height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;background:#171510;border-bottom:1px solid var(--line);position:absolute;z-index:5;top:0;left:0;right:0}
+.brand{font-family:Cinzel,serif;letter-spacing:2px;color:var(--gold2);font-size:17px}.brand small{display:block;font:11px 'EB Garamond';letter-spacing:3px;color:var(--muted);text-transform:uppercase}
+.day{font-size:14px;color:var(--muted);text-align:right}
+#map{position:absolute;inset:66px 0 0;background:linear-gradient(135deg,#22271f,#161b17 45%,#27251c)}
+.map-placeholder{position:absolute;inset:66px 0 0;display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;background:radial-gradient(ellipse,#2d3024,#171914 70%)}
+.map-placeholder .inner{max-width:430px;border:1px solid #625239;background:#171610e8;padding:28px;box-shadow:var(--shadow)}
+.map-placeholder h2{font:600 22px Cinzel;color:var(--gold2);margin:0 0 12px}.map-placeholder p{color:var(--muted);margin:8px 0}
+.map-overlay{position:absolute;z-index:4;left:18px;bottom:18px;display:flex;gap:8px;flex-wrap:wrap}
+.pill{background:#171510e8;border:1px solid var(--line);padding:7px 12px;color:var(--muted);font-size:14px}
+.marker{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;border:2px solid #d8bd83;background:#211b11;color:#f2d79d;box-shadow:0 3px 12px #000b;font-size:18px}
+.marker.dungeon{border-color:#bd6657;background:#351a17}.marker.resource{border-color:#8ba36e;background:#1c2b1b}
+.side{min-width:0;display:flex;flex-direction:column;background:linear-gradient(180deg,#201d17,#171510);overflow:hidden}
+.header{padding:22px 24px 14px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#211d16,#191711)}
+.header-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+h1{font:600 22px Cinzel,serif;color:var(--gold2);margin:0;letter-spacing:1px}
+.subtitle{color:var(--muted);font-size:14px;margin-top:4px}
+.status{display:flex;gap:12px;margin-top:17px}.stat{flex:1;min-width:0}.statline{display:flex;justify-content:space-between;color:var(--muted);font-size:14px}.bar{height:7px;background:#393329;margin-top:5px;border:1px solid #51432e}.fill{height:100%;background:var(--red);transition:width .3s}.fill.stamina{background:#9a895a}.fill.xp{background:#718a9a}
+.tabs{display:flex;border-bottom:1px solid var(--line);padding:0 14px;background:#191711}
+.tab{background:none;border:0;color:var(--muted);padding:15px 13px 12px;font:14px Cinzel;letter-spacing:.5px;border-bottom:2px solid transparent}
+.tab.active{color:var(--gold2);border-color:var(--gold)}
+.content{overflow:auto;padding:20px 22px 34px;flex:1}
+.section-title{font:600 15px Cinzel;color:var(--gold);letter-spacing:1px;text-transform:uppercase;margin:0 0 12px}
+.panel{background:linear-gradient(145deg,#252119,#1c1a15);border:1px solid #4a3d2b;padding:15px;margin-bottom:14px;box-shadow:0 5px 16px #0003}
+.quest{border-left:3px solid var(--gold)}.quest.failed{border-left-color:var(--red)}.quest.done{border-left-color:var(--green);opacity:.82}
+.quest-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.quest h3{font:600 16px Cinzel;color:#e0c58f;margin:0 0 6px}.tag{font-size:12px;color:var(--muted);border:1px solid #544630;padding:2px 7px;white-space:nowrap}
+.quest p{font-size:16px;line-height:1.35;color:#bcb09a;margin:8px 0 12px}
+.small{font-size:14px;color:var(--muted)}.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid #806a43;background:linear-gradient(#40331f,#2b2418);color:#e6d0a3;padding:8px 13px;font:13px Cinzel;letter-spacing:.4px;transition:.15s}
+.btn:hover{background:#514127;border-color:#c4a56b}.btn.secondary{background:#25231d;border-color:#5b5140;color:#c4b99f}.btn.danger{border-color:#88483e;color:#d99a8e}.btn:disabled{opacity:.4;cursor:not-allowed}
+.item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #3b3428}.item:last-child{border:0}.item-icon{width:38px;height:38px;display:grid;place-items:center;background:#30291d;border:1px solid #665337;font-size:21px;flex-shrink:0}
+.item-info{flex:1;min-width:0}.item-info strong{display:block;color:#ddc89e;font-weight:600}.item-info span{font-size:14px;color:var(--muted)}
+.item img{width:44px;height:44px;object-fit:cover;border:1px solid var(--gold)}
+.character-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.character-stat{padding:12px;background:#211e18;border:1px solid #453a2a}.character-stat strong{display:block;font:17px Cinzel;color:var(--gold2)}.character-stat span{font-size:14px;color:var(--muted)}
+.log-entry{border-bottom:1px solid #3a3328;padding:10px 0;font-size:16px}.log-entry time{font-size:12px;color:#8e8069;display:block}
+.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed #51432e}
+.footer{border-top:1px solid var(--line);padding:10px 20px;display:flex;justify-content:space-between;align-items:center;color:#857963;font-size:13px;background:#171510}
+.gear{display:flex;gap:7px;flex-wrap:wrap}.gear-slot{border:1px dashed #67563a;padding:7px 10px;color:#b6a485;font-size:14px}
+.modal-backdrop{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:20;padding:18px}.modal-backdrop.show{display:flex}
+.modal{width:min(520px,100%);background:linear-gradient(145deg,#282218,#171510);border:1px solid #92764b;box-shadow:0 20px 70px #000;padding:24px}
+.modal h2{font:600 21px Cinzel;color:var(--gold2);margin:0 0 12px}.enemy{font-size:18px;line-height:1.45;color:#c7b99e;margin:12px 0 20px}.combat-result{padding:12px;border:1px solid #67563a;margin:14px 0;color:#e0c99b;display:none}
+.settings{position:fixed;inset:0;background:#000b;display:none;z-index:25;align-items:center;justify-content:center;padding:18px}.settings.show{display:flex}
+.settings-card{width:min(480px,100%);background:#201d17;border:1px solid #806a43;padding:22px}
+.setting-row{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:13px 0;border-bottom:1px solid #42392b}
+.switch{accent-color:#b99a5e;width:18px;height:18px}
+input[type=file]{max-width:100%;color:var(--muted);font-size:13px}
+.notice{color:#c5a66b;font-size:14px;line-height:1.4}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2a2419;border:1px solid var(--gold);padding:10px 18px;color:#ead5a8;z-index:50;opacity:0;pointer-events:none;transition:.25s}.toast.show{opacity:1}
+.travel-scene{font-size:17px;line-height:1.55;color:#c7b99e;margin:16px 0;padding:14px;border-left:2px solid var(--gold);background:#1c1a15}
+@media(max-width:900px){.app{height:auto;min-height:100vh;display:flex;flex-direction:column}.world{height:43vh;min-height:300px;border-right:0;border-bottom:1px solid var(--line)}.side{min-height:57vh}.header{padding:16px 18px 12px}.content{padding:16px}.topbar{height:56px}#map,.map-placeholder{top:56px}.map-placeholder{inset:56px 0 0}.brand{font-size:14px}}
+@media(max-width:460px){.status{gap:7px}.tab{padding:13px 8px;font-size:12px}.header h1{font-size:18px}.day{font-size:12px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="world">
+    <div class="topbar">
+      <div class="brand">ХРОНИКИ СТРАННИКА<small>Новосибирск · Путь начинается</small></div>
+      <div class="day" id="worldDay">День первый<br>Мир ждёт</div>
+    </div>
+    <div id="map"></div>
+    <div class="map-placeholder" id="mapFallback">
+      <div class="inner">
+        <h2>Карта ещё не открыта</h2>
+        <p>Проверьте API-ключ Яндекс Карт и подключение к интернету.</p>
+        <p class="small">Пока карта не подключена, журнал, квесты, сражения и сохранения работают полностью.</p>
+      </div>
+    </div>
+    <div class="map-overlay">
+      <span class="pill" id="mapMode">Карта неведомого</span>
+      <span class="pill" id="markerStatus">Метки скрыты</span>
+    </div>
+  </section>
+
+  <main class="side">
+    <header class="header">
+      <div class="header-row">
+        <div><h1 id="heroName">Маримо, странник</h1><div class="subtitle">Уровень <span id="level">1</span> · <span id="rank">Начинающий путник</span></div></div>
+        <button class="btn secondary" id="settingsBtn">⚙ Настройки</button>
+      </div>
+      <div class="status">
+        <div class="stat"><div class="statline"><span>Здоровье</span><span id="hpText">100 / 100</span></div><div class="bar"><div class="fill" id="hpBar" style="width:100%"></div></div></div>
+        <div class="stat"><div class="statline"><span>Выносливость</span><span id="stText">80 / 80</span></div><div class="bar"><div class="fill stamina" id="stBar" style="width:100%"></div></div></div>
+      </div>
+    </header>
+    <nav class="tabs">
+      <button class="tab active" data-tab="journal">Журнал</button>
+      <button class="tab" data-tab="inventory">Инвентарь</button>
+      <button class="tab" data-tab="character">Персонаж</button>
+    </nav>
+    <div class="content" id="content"></div>
+    <footer class="footer"><span>Сохранение: <b id="saveState">локально</b></span><span id="goldText">Монеты: 12</span></footer>
+  </main>
+</div>
+
+<!-- Модальное окно путешествия (Morrowind style) -->
+<div class="modal-backdrop" id="travelModal">
+  <div class="modal">
+    <div class="small" id="travelType">ПУТЬ</div>
+    <h2 id="travelTitle">Место</h2>
+    <div class="travel-scene" id="travelText"></div>
+    <div class="actions" style="justify-content:flex-end;margin-top:18px">
+      <button class="btn secondary" id="closeTravel">Вернуться в журнал</button>
+      <button class="btn" id="confirmTravel" style="display:none">Действовать</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="dungeonModal">
+  <div class="modal">
+    <div class="small" id="dungeonType">ИСПЫТАНИЕ</div>
+    <h2 id="dungeonTitle">Встреча</h2>
+    <div class="enemy" id="enemyText"></div>
+    <div class="small" id="combatStats"></div>
+    <div class="combat-result" id="combatResult"></div>
+    <div class="actions" style="justify-content:flex-end;margin-top:18px">
+      <button class="btn secondary" id="leaveDungeon">Отступить</button>
+      <button class="btn" id="attackBtn">⚔ Атаковать</button>
+      <button class="btn" id="claimBtn" style="display:none">Завершить</button>
+    </div>
+  </div>
+</div>
+
+<div class="settings" id="settingsModal">
+  <div class="settings-card">
+    <div class="header-row"><h2 style="font:600 20px Cinzel;color:var(--gold2);margin:0">Настройки мира</h2><button class="btn secondary" id="closeSettings">Закрыть</button></div>
+    <div class="setting-row"><div><b>Режим новичка</b><div class="small">Показывать все маркеры заданий</div></div><input class="switch" type="checkbox" id="noviceToggle"></div>
+    <div class="setting-row"><div><b>Метки простых заданий</b><div class="small">Показывать локации сложности 1–2</div></div><input class="switch" type="checkbox" id="easyToggle"></div>
+    <div class="setting-row"><div><b>Имя персонажа</b><div class="small">Имя в журнале и интерфейсе</div></div><input id="nameInput" maxlength="22" value="Маримо" style="width:130px;background:#13120f;color:var(--text);border:1px solid var(--line);padding:6px"></div>
+    <div class="setting-row"><div><b>Центр карты</b><div class="small">Координаты [долгота, широта]</div></div><button class="btn secondary" id="resetMap">Сбросить</button></div>
+    <p class="notice">Маркеры по умолчанию выключены. Провал задания открывает его метку независимо от режима. Режим новичка раскрывает все места.</p>
+    <button class="btn" id="saveSettings" style="width:100%;margin-top:12px">Сохранить настройки</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ================================================================
+// НАСТРОЙКИ
+// ================================================================
+const YANDEX_MAPS_API_KEY = "33cd2776-f648-411c-bba1-7ac3657c4d72";
+// Координаты центра карты (твой район в Новосибирске)
+const DEFAULT_CENTER = [82.945882, 55.016262]; 
+
+const QUESTS = [
+ {id:"square",title:"Шёпот старой площади",type:"quest",difficulty:1,description:"Начни путь там, где сходятся шумные улицы. Найди старую площадь с каменной брусчаткой и прислушайся к разговорам прохожих. У торговых рядов тебя ждёт человек, которому нужна помощь.",markerCoords:[55.0162, 82.9458],giver:"Незнакомец у площади",xp:25,loot:"Монета странника",icon:"✦",active:true,scene:"Ты выходишь на площадь. Ветер гоняет обёртки по асфальту, редкие прохожие кутаются в куртки. У старого киоска стоит человек в потёртой шапке и нервно оглядывается. Кажется, он ждёт кого-то вроде тебя."},
+ {id:"apothecary",title:"Запасы аптекаря",type:"resource",difficulty:1,description:"Отыщи место, где пахнет сушёными травами и лекарствами. Говорят, там можно пополнить дорожные припасы и перевести дух.",markerCoords:[55.0170, 82.9480],giver:"Аптекарь",xp:10,loot:"Малое зелье",icon:"⚗",active:true,scene:"Дверь аптеки скрипит. Внутри пахнет валерианой и спиртом. Аптекарь, пожилая женщина с усталыми глазами, молча кивает и протягивает тебе маленький пузырёк: «Держи, странник. В такую погоду без зелья нельзя»."},
+ {id:"tower",title:"Башня на севере",type:"quest",difficulty:3,description:"Иди на север от главной площади, пока городской шум не станет тише. Держись улиц, уходящих вверх, и ищи старую водонапорную башню. Она видна между крышами, но путь к ней прячется во дворах. Когда услышишь гул ветра в металлических конструкциях — ты рядом.",markerCoords:[55.0200, 82.9430],giver:"Записка без подписи",xp:60,loot:"Потёртый амулет",icon:"✧",active:true,scene:"Ты петляешь дворами. Ветер становится сильнее, и вскоре ты слышишь глухой металлический гул. Между пятиэтажками вырастает старая водонапорная башня, облупленная и забытая. На её стене кто-то нацарапал символ, похожий на глаз."},
+ {id:"ice",title:"Белая ловушка",type:"dungeon",difficulty:3,description:"За поворотом, где тротуар сужается и тень от домов ложится на землю, начинается скользкий участок. Не спеши: здесь даже уверенный путник может потерять равновесие. Осмотри путь и приготовься к испытанию.",markerCoords:[55.0140, 82.9400],giver:"Испытание пути",xp:75,loot:"Тёплая куртка",enemy:"Гололёд",enemyText:"Перед тобой коварный гололёд. Тонкая ледяная корка почти незаметна, но каждый неверный шаг грозит падением. Тебе понадобятся выносливость и немного удачи.",icon:"⚔",active:true,scene:"Тротуар сужается, тень от домов ложится на землю. Под ногами — тонкая ледяная корка, почти незаметная. Ты делаешь шаг, другой... и чувствуешь, как земля уходит из-под ног."},
+ {id:"market",title:"Рынок у перекрёстка",type:"resource",difficulty:2,description:"Следуй к оживлённому перекрёстку. Ищи ряды лавок, где торговцы раскладывают товары прямо под открытым небом. Здесь можно найти полезные вещи и услышать свежие слухи.",markerCoords:[55.0180, 82.9500],giver:"Торговец",xp:15,loot:"Термос",icon:"⌂",active:true,scene:"Перекрёсток кипит жизнью. Торговцы в пуховиках раскладывают на ящиках носки, перчатки и китайские термосы. Один из них, с прокуренными усами, подмигивает тебе и протягивает термос: «Держи, пригодится. В мороз без него — смерть»."},
+ {id:"snowdrift",title:"Страж снежного перевала",type:"dungeon",difficulty:4,description:"Покинь широкую улицу и двигайся туда, где ветер собирает снег у ограждений. За рядом деревьев виднеется узкий проход. Не ищи прямой дороги: снег скрывает неровности, а сугроб преграждает путь.",markerCoords:[55.0220, 82.9350],giver:"Старый следопыт",xp:100,loot:"Термос",enemy:"Сугроб",enemyText:"Огромный рыхлый сугроб перегородил проход. Он кажется безобидным, но под снегом могут скрываться камни и лёд. Придётся пробираться силой и осторожностью.",icon:"⚔",active:true,scene:"Ветер собирает снег у ограждений. За рядом деревьев — узкий проход, заваленный огромным сугробом. Ты останавливаешься, чтобы перевести дух. Снег кажется мягким, но под ним может скрываться что угодно."}
+];
+
+const ITEMS = {
+ jacket:{id:"jacket",name:"Тёплая куртка",icon:"🧥",desc:"Сопротивление холоду. Снижает урон от зимних испытаний.",kind:"gear"},
+ thermos:{id:"thermos",name:"Термос",icon:"♨️",desc:"Восстанавливает 25 выносливости при использовании.",kind:"consumable"},
+ potion:{id:"potion",name:"Малое зелье",icon:"🧪",desc:"Восстанавливает 30 здоровья.",kind:"consumable"},
+ coin:{id:"coin",name:"Монета странника",icon:"🪙",desc:"Старая монета с затёртым гербом.",kind:"misc"},
+ amulet:{id:"amulet",name:"Потёртый амулет",icon:"📿",desc:"Память о пути. Удача +1.",kind:"misc"}
+};
+const freshState=()=>({
+ name:"Маримо",level:1,xp:0,hp:100,maxHp:100,stamina:80,maxStamina:80,charisma:5,luck:5,strength:5,gold:12,
+ inventory:["thermos","potion","coin"],equipped:{jacket:false},photos:{},completed:[],failed:[],active:QUESTS.map(q=>q.id),
+ novice:false,showEasy:false,log:[{text:"Ты вышел навстречу незнакомому городу. Мир не обещает быть гостеприимным.",time:"Начало пути"}],
+ day:1,center:DEFAULT_CENTER
+});
+let state=loadState(),currentTab="journal",mapInstance=null,mapMarkers=[],currentDungeon=null,combatDone=false,currentTravel=null;
+function loadState(){try{const s=JSON.parse(localStorage.getItem("marimo_rpg_save"));return s?{...freshState(),...s}:freshState()}catch(e){return freshState()}}
+function save(){try{localStorage.setItem("marimo_rpg_save",JSON.stringify(state));document.getElementById("saveState").textContent="сохранено"}catch(e){document.getElementById("saveState").textContent="ошибка памяти";toast("Хранилище заполнено. Уменьшите размер фотографий.")}}
+function log(text){state.log.unshift({text,time:`День ${state.day}`});state.log=state.log.slice(0,35);save()}
+function toast(t){const el=document.getElementById("toast");el.textContent=t;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),2300)}
+function questById(id){return QUESTS.find(q=>q.id===id)}
+function itemCount(id){return state.inventory.filter(x=>x===id).length}
+function addItem(id){state.inventory.push(id);log(`Получен предмет: ${ITEMS[id]?.name||id}.`)}
+function gainXp(n){state.xp+=n;while(state.xp>=state.level*100){state.xp-=state.level*100;state.level++;state.maxHp+=8;state.maxStamina+=5;state.hp=state.maxHp;state.stamina=state.maxStamina;toast(`Новый уровень: ${state.level}!`)}}
+function renderHeader(){
+ document.getElementById("heroName").textContent=state.name+", странник";
+ document.getElementById("level").textContent=state.level;
+ document.getElementById("rank").textContent=state.level<3?"Начинающий путник":state.level<5?"Искатель дорог":"Закалённый странник";
+ document.getElementById("hpText").textContent=`${state.hp} / ${state.maxHp}`;
+ document.getElementById("stText").textContent=`${state.stamina} / ${state.maxStamina}`;
+ document.getElementById("hpBar").style.width=(state.hp/state.maxHp*100)+"%";
+ document.getElementById("stBar").style.width=(state.stamina/state.maxStamina*100)+"%";
+ document.getElementById("goldText").textContent="Монеты: "+state.gold;
+ document.getElementById("worldDay").innerHTML=`День ${state.day}<br>Путь продолжается`;
+}
+function render(){
+ renderHeader();
+ document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===currentTab));
+ const c=document.getElementById("content");
+ if(currentTab==="journal")renderJournal(c);
+ if(currentTab==="inventory")renderInventory(c);
+ if(currentTab==="character")renderCharacter(c);
+}
+function renderJournal(c){
+ let active=state.active.map(questById).filter(Boolean),done=state.completed.map(questById).filter(Boolean);
+ let failed=state.failed.map(questById).filter(Boolean);
+ c.innerHTML=`<div class="section-title">Записи в журнале</div>
+ <div class="panel"><div class="small">Заметка странника</div><div style="font-size:17px;line-height:1.4;margin-top:6px">«Не всякая дорога отмечена на карте. Иногда верное направление подсказывает лишь старый рассказ или след на земле».</div></div>
+ <div class="section-title">Активные задания · ${active.length}</div>
+ ${active.length?active.map(q=>questCard(q,"active")).join(""):'<div class="empty">Нет активных заданий. Исследуй окрестности.</div>'}
+ ${failed.length?`<div class="section-title" style="margin-top:20px">Проваленные задания</div>${failed.map(q=>questCard(q,"failed")).join("")}`:""}
+ <div class="section-title" style="margin-top:20px">Завершённые · ${done.length}</div>
+ ${done.length?done.map(q=>questCard(q,"done")).join(""):'<div class="empty">Твои подвиги ещё впереди.</div>'}
+ <div class="section-title" style="margin-top:20px">Последние записи</div>
+ ${state.log.slice(0,6).map(x=>`<div class="log-entry"><time>${escapeHtml(x.time)}</time>${escapeHtml(x.text)}</div>`).join("")}`;
+}
+function questCard(q,status){
+ const type=q.type==="dungeon"?"Данж":q.type==="resource"?"Ресурс":"Задание";
+ let buttons="";
+ if(status==="active"){
+  buttons=`<button class="btn" onclick="travel('${q.id}')">Отправиться в путь</button>`;
+ } else if(status==="failed")buttons=`<button class="btn secondary" onclick="reopenQuest('${q.id}')">Попробовать снова</button>`;
+ return `<article class="panel quest ${status}"><div class="quest-top"><div><h3>${q.icon} ${escapeHtml(q.title)}</h3><div class="small">${type} · сложность ${q.difficulty}/5</div></div><span class="tag">${status==="done"?"Выполнено":status==="failed"?"Провалено":"Активно"}</span></div><p>${escapeHtml(q.description)}</p><div class="actions">${buttons}</div></article>`;
+}
+function renderInventory(c){
+ const groups=state.inventory.map((id,i)=>({id,i,item:ITEMS[id]})).filter(x=>x.item);
+ c.innerHTML=`<div class="section-title">Дорожный мешок · ${state.inventory.length} предмет.</div>
+ <div class="panel"><div class="section-title">Экипировка</div><div class="gear"><span class="gear-slot">Куртка: ${state.equipped.jacket?"🧥 надета":"пусто"}</span><span class="gear-slot">Термос: ${itemCount("thermos")?"в сумке":"нет"}</span></div></div>
+ <div class="panel">${groups.length?groups.map(x=>`<div class="item"><div class="item-icon">${x.item.icon}</div><div class="item-info"><strong>${x.item.name}</strong><span>${x.item.desc}</span></div>${x.id==="jacket"?`<button class="btn secondary" onclick="toggleJacket()"> ${state.equipped.jacket?"Снять":"Надеть"} </button>`:x.item.kind==="consumable"?`<button class="btn secondary" onclick="useItem('${x.id}')">Использовать</button>`:""}</div>`).join(""):'<div class="empty">Мешок пуст.</div>'}</div>
+ <div class="panel"><div class="section-title">Доказательства пути</div><p class="small">Загружай фотографии найденных мест или предметов. Они хранятся в localStorage этого браузера.</p><input type="file" accept="image/*" id="photoInput"><div id="photoGallery" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${Object.entries(state.photos).map(([k,v])=>`<div style="width:90px"><img src="${v}" style="width:90px;height:75px;object-fit:cover;border:1px solid var(--gold)"><div class="small">${
