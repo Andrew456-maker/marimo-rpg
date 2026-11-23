@@ -339,54 +339,51 @@ async function initMap(){
   
   mapInstance=new YMap(document.getElementById("map"),{location:{center:state.center||DEFAULT_CENTER,zoom:13}});
   
-  // --- НАЧАЛО КАСТОМНОГО СТИЛЯ ---
+  // --- ТОЛЬКО ЦВЕТА, БЕЗ СКРЫТИЯ ---
   mapInstance.addChild(new YMapDefaultSchemeLayer({
     customization: [
-      // 1. Фон карты (земля) - темный, как панели сайта
-      {
-        tags: { all: ['landscape'] },
-        stylers: [{ color: '#1b1915' }] // --panel
-      },
-      // 2. Вода (Обь) - глубокий синий/серый
-      {
-        tags: { all: ['water'] },
-        stylers: [{ color: '#151613' }] // Темно-зеленоватый
-      },
-      // 3. Парки и леса - приглушенный зеленый
-      {
-        tags: { all: ['landscape', 'park'] },
-        stylers: [{ color: '#22271f' }] // Из градиента карты
-      },
-      // 4. Дороги - чтобы выделялись на фоне
-      {
-        tags: { any: ['road_1', 'road_2', 'road_3'] },
-        elements: 'geometry',
-        stylers: [{ color: '#393329' }] // --line
-      },
+      // 1. Земля (фон) - темный
+      { tags: { all: ['landscape'] }, stylers: [{ color: '#1b1915' }] },
+      
+      // 2. Вода - темный
+      { tags: { all: ['water'] }, stylers: [{ color: '#151613' }] },
+      
+      // 3. Парки и лес - приглушенный зеленый
+      { tags: { all: ['landscape', 'park'] }, stylers: [{ color: '#22271f' }] },
+      
+      // 4. Дороги - цвет линий сайта
+      { tags: { any: ['road_1', 'road_2', 'road_3'] }, elements: 'geometry', stylers: [{ color: '#393329' }] },
+      
       // 5. Здания - темные блоки
-      {
-        tags: { all: ['building'] },
-        stylers: [{ color: '#211e18' }] // --panel2
-      },
-      // 6. Скрываем всё лишнее: иконки метро, магазинов, парковок и т.д.
-      {
-        tags: { any: ['transit', 'poi', 'parking', 'metro'] },
-        stylers: [{ visibility: 'off' }]
-      },
-      // 7. Текст подписей (улицы, районы) - делаем приглушенным
-      {
-        tags: { any: ['road', 'district'] },
-        elements: 'label.text',
-        stylers: [{ color: '#928773' }] // --muted
-      }
+      { tags: { all: ['building'] }, stylers: [{ color: '#211e18' }] },
+      
+      // 6. Текст подписей (улицы) - приглушенный
+      { tags: { any: ['road', 'district'] }, elements: 'label.text', stylers: [{ color: '#928773' }] }
     ]
   }));
-  // --- КОНЕЦ КАСТОМНОГО СТИЛЯ ---
+  // --- КОНЕЦ СТИЛЯ ---
 
   mapInstance.addChild(new YMapDefaultFeaturesLayer());
+  
+  // Добавляем элементы управления (зум)
   try{mapInstance.addChild(new YMapControls({position:"right"}).addChild(new YMapZoomControl({})))}catch(e){}
+  
   document.getElementById("mapFallback").style.display="none";
   document.getElementById("mapMode").textContent="Исследование мира";
   refreshMarkers();
- }catch(err){console.error(err);document.getElementById("mapFallback").style.display="flex";document.querySelector("#mapFallback p").textContent="Не удалось загрузить Яндекс Карты. Проверьте API-ключ, Referer и подключение к интернету."}
+ }catch(err){
+   console.error("Ошибка при загрузке карты:", err);
+   // Если кастомный стиль не сработал, грузим базовую темную карту
+   try {
+       mapInstance=new YMap(document.getElementById("map"),{location:{center:state.center||DEFAULT_CENTER,zoom:13}});
+       mapInstance.addChild(new YMapDefaultSchemeLayer({theme:"dark"}));
+       mapInstance.addChild(new YMapDefaultFeaturesLayer());
+       document.getElementById("mapFallback").style.display="none";
+       document.getElementById("mapMode").textContent="Исследование мира";
+       refreshMarkers();
+   } catch(e2) {
+       document.getElementById("mapFallback").style.display="flex";
+       document.querySelector("#mapFallback p").textContent="Не удалось загрузить Яндекс Карты. Проверьте API-ключ, Referer и подключение к интернету.";
+   }
+ }
 }
